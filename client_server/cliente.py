@@ -8,7 +8,7 @@
 import sys
 import socket
 
-MSG_TAMANHO_MAX = 100
+MSG_TAMANHO_MAX = 10000
 
 
 class Client():
@@ -28,7 +28,8 @@ class Client():
             if not msg:
                 print("Falhou para receber uma mensagem")
                 break
-            print("Msg recebida: {}".format(msg.decode("ascii")))
+            print("Msg recebida:")
+            # " {}".format(msg.decode("ascii")))
             if msg.decode("ascii") == "tchau":
                 break
 
