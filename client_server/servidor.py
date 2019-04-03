@@ -7,51 +7,61 @@
 
 import sys
 import socket
+import struct
 
 MAX_CLIENTES = 10
 MSG_TAMANHO_MAX = 10000
 
 
 class Server():
-    def __init__(self, port, ip=""):
+    def __init__(self, ip, port):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.bind((ip, port))
+        self.s.bind((str(ip), int(port)))
         self.s.listen(MAX_CLIENTES)
 
         self.lower_limit = 0
         self.global_counter = 0
-        self.upper_limit = 999999
+        self.upper_limit = 1000000
 
     def update_counter(self, operation, num):
         res = 0
         if(operation == 0):
             res = self.global_counter - num
-            if(res < 0):
-                res = self.upper_limit - num
         else:
             if(operation == 1):
                 res = self.global_counter + num
-                if(res < 0):
-                    res = self.upper_limit + num
-        if(res > self.upper_limit + 1):
-            res = res - (self.upper_limit + 1)
+
+        if(res < self.lower_limit):
+            res += self.upper_limit
+        if(res >= self.upper_limit):
+            res = res - self.upper_limit
         self.global_counter = res
+
+    def receive_operation(self, client_socket, client):
+        client_socket.settimeout(15.0)
+        client_msg = client_socket.recv(MSG_TAMANHO_MAX)
+        if not client_msg:
+            return False
+        else:
+            operation, number = struct.unpack("!?i", client_msg)
+            self.update_counter(operation, number)
+        return True
+
+    def send_counter(self, client_socket):
+        server_msg = struct.pack("!I", self.global_counter)
+        nbytes = client_socket.send(server_msg)
+        if nbytes != len(server_msg):
+            print("Falha No Envio da Mensagem. \n")
+            return False
+        return True
 
     def run(self):
         while True:
-            c, client = self.s.accept()
+            client_socket, client = self.s.accept()
             while True:
-                msg = c.recv(MSG_TAMANHO_MAX)
-                if not msg:
+                if(self.receive_operation(client_socket, client) is False):
                     break
-                print("Msg recebida: {}".format(msg.decode("ascii")))
-                self.update_counter(operation = 0, num = -2)
-
-                nbytes = c.send(str(self.global_counter))
-                if nbytes != len(msg):
-                    break
-
-                if msg.decode("ascii") == "tchau":
+                if(self.send_counter(client_socket) is False):
                     break
 
     def close(self):
@@ -61,11 +71,20 @@ class Server():
 if __name__ == '__main__':
 
     if(len(sys.argv) == 2):
-        server = Server(int(sys.argv[1]))
+        try:
+            server = Server("", sys.argv[1])
+            server.run()
+            server.close()
+        except KeyboardInterrupt:
+            exit(1)
     else:
         if(len(sys.argv) == 3):
-            server = Server(str(sys.argv[1]), str(sys.argv[2]))
+            try:
+                server = Server(sys.argv[1], sys.argv[2])
+                server.run()
+                server.close()
+            except KeyboardInterrupt:
+                exit(2)
         else:
-            print("Number of Arguments Invalid.")
-    server.run()
-    server.close()
+            print("Número de Argumentos Inválidos. \n")
+            print("python3.5 servidor.py <IP> [PORTA] \n")

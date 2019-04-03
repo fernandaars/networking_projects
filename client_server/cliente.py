@@ -7,30 +7,47 @@
 
 import sys
 import socket
+import struct
 
 MSG_TAMANHO_MAX = 10000
 
 
 class Client():
+
     def __init__(self, ip, port):
         self.c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.c.connect((ip, port))
+        self.c.connect((str(ip), int(port)))
+
+    def send_operation(self, operation, number):
+        if(operation == "+"):
+            client_msg = struct.pack("!?i", True, int(number))
+        else:
+            if(operation == "-"):
+                client_msg = struct.pack("!?i", False, int(number))
+            else:
+                print("[+/-] [INTEIRO] \n")
+        nbytes = self.c.send(client_msg)
+        if nbytes != len(client_msg):
+            print("Falha No Envio da Mensagem. \n")
+
+    def receive_counter(self):
+        self.c.settimeout(15.0)
+        server_msg = self.c.recv(MSG_TAMANHO_MAX)
+        if not server_msg:
+            return False
+        counter = struct.unpack("!I", server_msg)
+        print(counter[0])
+        return True
 
     def run(self):
         while True:
-            msg = input("Msg: ").encode("ascii")
-            nbytes = self.c.send(msg)
-            if nbytes != len(msg):
-                print("Falhou ao enviar a mensagem")
+            try:
+                client_msg = input("")
+            except EOFError:
                 break
-
-            msg = self.c.recv(MSG_TAMANHO_MAX)
-            if not msg:
-                print("Falhou para receber uma mensagem")
-                break
-            print("Msg recebida:")
-            # " {}".format(msg.decode("ascii")))
-            if msg.decode("ascii") == "tchau":
+            operation, number = client_msg.split(" ")
+            self.send_operation(operation, number)
+            if self.receive_counter() is False:
                 break
 
     def close(self):
@@ -39,8 +56,9 @@ class Client():
 
 if __name__ == '__main__':
     if len(sys.argv) == 3:
-        client = Client(sys.argv[1], int(sys.argv[2]))
+        client = Client(sys.argv[1], sys.argv[2])
+        client.run()
+        client.close()
     else:
-        print("Number of Arguments Invalid.")
-    client.run()
-    client.close()
+        print("Número de Argumentos Inválidos. \n")
+        print("python3.5 cliente.py [IP] [PORTA] \n")
