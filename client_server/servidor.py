@@ -37,9 +37,15 @@ class Server():
             res = res - self.upper_limit
         self.global_counter = res
 
+    def counter_to_string(self):
+        return "{:06d}".format(self.global_counter).encode("ascii")
+
     def receive_operation(self, client_socket, client):
         client_socket.settimeout(15.0)
-        client_msg = client_socket.recv(MSG_TAMANHO_MAX)
+        try:
+            client_msg = client_socket.recv(MSG_TAMANHO_MAX)
+        except socket.timeout:
+            return False
         if not client_msg:
             return False
         else:
@@ -48,10 +54,9 @@ class Server():
         return True
 
     def send_counter(self, client_socket):
-        server_msg = struct.pack("!I", self.global_counter)
+        server_msg = self.counter_to_string()
         nbytes = client_socket.send(server_msg)
         if nbytes != len(server_msg):
-            print("Falha No Envio da Mensagem. \n")
             return False
         return True
 

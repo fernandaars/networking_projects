@@ -32,11 +32,13 @@ class Client():
 
     def receive_counter(self):
         self.c.settimeout(15.0)
-        server_msg = self.c.recv(MSG_TAMANHO_MAX)
+        try:
+            server_msg = self.c.recv(MSG_TAMANHO_MAX)
+        except socket.timeout:
+            return False
         if not server_msg:
             return False
-        counter = struct.unpack("!I", server_msg)
-        print(counter[0])
+        print(server_msg.decode("ascii"))
         return True
 
     def run(self):
