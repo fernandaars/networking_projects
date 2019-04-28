@@ -13,8 +13,63 @@ SOF_16_Base = 0xcc
 EOF_16_Base = 0xcd
 MSG_TAMANHO_MAX = 10000
 
-#class Data_Encoding():
-#class Data_Framing():
+class Data_Encoding():
+    def encode16(Array_bytes):
+        base16 = ""
+        for binary in Array_bytes:
+            hexa = hex(int(binary, 2))
+            temp = hexa.lstrip('0x')
+            #print(temp)
+            if len(temp) < 2:
+                zero = "0"
+                temp = zero + temp
+                #print("Precisou completar: ",temp)
+            base16 = base16 + temp
+        return base16
+
+    def decode16(string):
+        return bytes.fromhex(string).decode('ascii')
+
+
+class Data_Framing():
+    def insert_DLE(string, index):
+        return string[:index] + '1b' + string[index:]
+
+    def findDLE(dado):
+        start = 0
+        ind = 0
+        while ind!=-1:
+            if start < len(dado):
+                ind = dado.find("1b", start)
+                print(ind)
+                if ind != -1:
+                    dado = insert_DLE(dado, ind)
+                    print(dado)
+                    start = ind + 4
+            else:
+                ind = -1
+        return dado
+
+    def findEOF(dado):
+        start = 0
+        ind = 0
+        while ind!=-1:
+            if start < len(dado):
+                ind = dado.find("cd", start)
+                print(ind)
+                if ind != -1:
+                    dado = insert_DLE(dado, ind)
+                    print(dado)
+                    start = ind + 4
+            else:
+                ind = -1
+        return dado
+
+    def framing(ID, flags, checksum, dados):
+        frame = "cc"
+        frame = frame + ID + flags + checksum + dados + "dc"
+        return frame
+
 #class Error_Detection():
 #class Data_Sequencing():
 #class Data_Transmission():
