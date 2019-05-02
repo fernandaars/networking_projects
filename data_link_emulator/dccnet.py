@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 '''
     Fernanda A. R. Silva
-    Ketlyn C de C. Sena
+    Ketlyn C. Sena de Castro
     Networking Systems Subject
     Computing Science Departament - UFMG
 '''
