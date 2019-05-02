@@ -1,158 +1,227 @@
 #!/usr/bin/env python
 '''
     Fernanda A. R. Silva
+    Ketlyn C de C. Sena
     Networking Systems Subject
     Computing Science Departament - UFMG
 '''
 
 import sys
-import struct
+# import struct
 import socket
+# import threading
 
-SOF_16_Base = 0xcc
-EOF_16_Base = 0xcd
+DLE_16_Base = "1b"
+SOF_16_Base = "cc"
+EOF_16_Base = "cd"
+MAX_CLIENTES = 100
 MSG_TAMANHO_MAX = 10000
+CONFIRMATION_FRAME = "aaaaaaaaaaaaaaa"
+FRAME_EXAMPLE = "cc007fae2d01020304cd"
 
-class Data_Encoding():
-    def encode16(Array_bytes):
+
+class DataEncoding():
+    def encode_16(self, bytes_array):
         base16 = ""
-        for binary in Array_bytes:
+        for binary in bytes_array:
             hexa = hex(int(binary, 2))
             temp = hexa.lstrip('0x')
-            #print(temp)
             if len(temp) < 2:
                 zero = "0"
                 temp = zero + temp
-                #print("Precisou completar: ",temp)
             base16 = base16 + temp
         return base16
 
-    def decode16(string):
-        return bytes.fromhex(string).decode('ascii')
+    def pre_encode(self, lista):
+        size = len(lista)
+        bytes_array = []
+        for i in range(0, size):
+            num = bin(lista[i])
+            num = num.replace("0b", "")
+            bytes_array.append(num)
+        return bytes_array
+
+    def decode_16(self, string):
+        size = len(string)
+        lista = []
+        i = 0
+        while i < size:
+            s = string[i:i + 2]
+            i = i + 2
+            lista.append(int(s, 16))
+        return lista
 
 
-class Data_Framing():
-    def insert_DLE(string, index):
-        return string[:index] + '1b' + string[index:]
+class DataFraming():
+    def calculate_checksum(self, frame):
+        size = len(frame)
+        x = 0
+        soma = 0
+        while size > 1:
+            b1 = frame[x]
+            b2 = frame[x + 1]
+            soma = soma + (b1 << 8) + b2
+            size = size - 2
+            x = x + 2
 
-    def findDLE(dado):
-        start = 0
-        ind = 0
-        while ind!=-1:
-            if start < len(dado):
-                ind = dado.find("1b", start)
-                print(ind)
-                if ind != -1:
-                    dado = insert_DLE(dado, ind)
-                    print(dado)
-                    start = ind + 4
+        if size > 0:
+            soma = soma + frame[x]
+
+        while (soma >> 16):
+            soma = (soma & 0xffff) + (soma >> 16)
+
+        soma = 0xffff - soma
+        b1 = soma >> 8
+        b2 = soma & 0xff
+
+        return b1, b2
+
+    def convertInt(self, lista):
+        size = len(lista)
+        inteiros = []
+        # bits = []
+        for x in range(0, size):
+            num = int(lista[x], 2)
+            inteiros.append(num)
+            # num = int(lista[x], 10)
+            # bits.append(num)
+        # print("inteiros: ", inteiros)
+        return inteiros  # bits
+
+    def byte_stuffing(self, lista):
+        size = len(lista)
+        i = 0
+        while i < size:
+            if lista[i] == 27 or lista[i] == 205:
+                lista.insert(i, 27)
+                i = i + 2
+                size = size + 1
             else:
-                ind = -1
-        return dado
+                i = i + 1
+        return lista
 
-    def findEOF(dado):
-        start = 0
-        ind = 0
-        while ind!=-1:
-            if start < len(dado):
-                ind = dado.find("cd", start)
-                print(ind)
-                if ind != -1:
-                    dado = insert_DLE(dado, ind)
-                    print(dado)
-                    start = ind + 4
-            else:
-                ind = -1
-        return dado
+    def undo_byte_stuffing(self, lista):
+        size = len(lista)
+        i = 0
+        while i < size:
+            if lista[i] == 27:
+                lista.pop(i)
+                size = size - 1
+            i = i + 1
+        return lista
 
-    def framing(ID, flags, checksum, dados):
-        frame = "cc"
-        frame = frame + ID + flags + checksum + dados + "dc"
-        return frame
+    def saidaDado(self, lista):
+        size = len(lista)
+        dado = lista[5:size - 1]
 
-#class Error_Detection():
-#class Data_Sequencing():
-#class Data_Transmission():
+        size = len(dado)
+        frase = ""
+        for i in range(0, size):
+            frase = frase + chr(dado[i])
+        return frase
 
-class Client():
-    def __init__(self, ip, port):
-        self.c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.c.connect((ip, int(port)))
+    def framing(self, lista, ID, FLAG, checksum1, checksum2):
+        lista.append(205)
+        lista.insert(0, checksum2)
+        lista.insert(0, checksum1)
+        lista.insert(0, FLAG)
+        lista.insert(0, ID)
+        lista.insert(0, 204)
+        return lista
 
-    def send_operation(self):
-        msg = input("")
-        operation, number = msg.split(" ")
-        client_msg = struct.pack("!?i", bin(1), int(0))
+    def set_checksum(self, lista, byte1, byte2):
+        lista[3] = byte1
+        lista[4] = byte2
+        return lista
 
-        if(operation == "+"):
-            client_msg = struct.pack("!?i", bin(1), int(number))
-        if(operation == "-"):
-            client_msg = struct.pack("!?i", bin(0), int(number))
+    def set_id(self):
+        return 1
 
-        nbytes = self.c.send(client_msg)
+    def set_flag(self):
+        return 7
 
-    def receive_counter(self):
-        server_msg = self.c.recv(MSG_TAMANHO_MAX)
-        counter = str(struct.unpack("!I", server_msg)[0])
-        print(counter)
 
-    def run(self):
-        while True:
-            self.send_operation()
-            self.receive_counter()
+class SocketExtended():
+    def __init__(self, type, ip, port):
+        if(type == "client"):
+            self.c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.c.connect((ip, int(port)))
+        if(type == "server"):
+            self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.s.bind((ip, int(port)))
+            self.s.listen(MAX_CLIENTES)
+            self.c, self.client = self.s.accept()
+
+    def send_frame(self, frame):
+        self.c.send(frame.encode("ascii"))
+
+    def receive_frame(self):
+        frame = self.c.recv(MSG_TAMANHO_MAX)
+        print(str(frame.decode("ascii")))
+
+    def send_confirmation(self):
+        self.c.send(CONFIRMATION_FRAME.encode("ascii"))
+
+    def receive_confirmation(self):
+        frame = self.c.recv(MSG_TAMANHO_MAX)
+        print(str(frame.decode("ascii")))
 
     def close(self):
         self.c.close()
-
-class Server():
-    def __init__(self, ip, port):
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.bind((ip, int(port)))
-        self.s.listen(MAX_CLIENTES)
-
-        self.lower_limit = 0
-        self.global_counter = 0
-        self.upper_limit = 999999
-
-    def update_counter(self, operation, num):
-        if(operation is True):
-            self.global_counter = self.global_counter + num
-        else:
-            self.global_counter = self.global_counter - num
-
-    def receive_operation(self, client_socket, client):
-        msg = client_socket.recv(MSG_TAMANHO_MAX)
-        operation, number = struct.unpack("!?i", msg)
-        self.update_counter(operation, number)
-
-    def send_counter(self, client_socket, client):
-        msg = struct.pack("!I", self.global_counter)
-        nbytes = client_socket.send(msg)
-        return True
-
-    def run(self):
-        while True:
-            client_socket, client = self.s.accept()
-            while True:
-                if self.receive_operation(client_socket, client) is False:
-                    break
-                if self.send_counter(client_socket, client) is False:
-                    break
-
-    def close(self):
         self.s.close()
 
-if __name__ == '__main__':
 
-    if(len(sys.argv) == 2):
-        server = Server("", sys.argv[1])
-        server.run()
-        server.close()
-    else:
-        if(len(sys.argv) == 3):
-            server = Server(sys.argv[1], sys.argv[2])
-            server.run()
-            server.close()
-        else:
-            print("Número de Argumentos Inválidos. \n") 
-            print("python3.6 servidor.py <IP> [PORTA] \n")
+class Data_Transmission():
+    def __init__(self, type, ip, port, input_file, output_file):
+        try:
+            self.input_pointer = open(input_file, "r")
+            self.output_pointer = open(output_file, "w")
+        except OSError as e:
+            print("Error in The File Openning" + str(e))
+
+        self.socket_object = SocketExtended(type, ip, port)
+
+    def active_transmission(self):
+        self.socket_object.send_frame(FRAME_EXAMPLE)
+        # line = self.input_pointer.readline()
+        # while (line):
+        #     response = self.socket_object.send_frame()
+        #     if(response is True):
+        #         break
+        #     self.socket_object.receive_confirmation()
+        #     line = self.input_pointer.readline()
+
+    def passive_transmission(self):
+        self.socket_object.receive_frame()
+        # client_socket, client = self.socket_object.accept()
+        # while True:
+        #     line = self.socket_object.receive_frame(client_socket, client)
+        #     if(line is None):
+        #         break
+        #     if self.socket_object.send_confirmation(client_socket,
+        #                                             client) is False:
+        #         break
+        #     self.output_pointer.write(line)
+
+    def close_transmission(self):
+        self.input_pointer.close()
+        self.output_pointer.close()
+        self.socket_object.close()
+
+
+if __name__ == '__main__':
+    executable_name = str(sys.argv[0])
+    param = str(sys.argv[1])
+    input_file = str(sys.argv[3])
+    output_file = str(sys.argv[4])
+
+    if(param == "-c"):
+        ip, port = str(sys.argv[2]).split(":")
+        t = Data_Transmission("client", ip, port, input_file, output_file)
+        t.active_transmission()
+
+    if(param == "-s"):
+        ip = ""
+        port = sys.argv[2]
+        t = Data_Transmission("server", ip, port, input_file, output_file)
+        t.passive_transmission()
