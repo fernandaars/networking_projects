@@ -104,6 +104,7 @@ def saidaDado(lista):
 	frase = ""
 	for i in range(0,size):
 		frase = frase + chr(dado[i])
+
 	return frase
 
 def framing(lista, ID, FLAG, checksum1, checksum2):
@@ -126,14 +127,21 @@ def setID():
 def setFlag():
 	return 7
 
-for msg in sys.stdin:
 
+input_file = str(sys.argv[1])
+output_file = str(sys.argv[2])
+
+f_input = open(input_file, 'r')
+f_output = open(output_file, 'w')
+
+#le 256 bytes por vez
+a = f_input.read(256)
+while len(a) > 0:
 	#Formatação da Entrada
-	a_msg = bytes(msg, "ascii")
+	a_msg = bytes(str(a), "ascii")
 	str_bin = ' '.join(format(x, 'b') for x in bytearray(a_msg))
 	Array_bytes = str_bin.split()
 	inteiros = convertInt(Array_bytes)
-	#print("Inteiros :", inteiros)
 
 	ID = 1
 	FLAG = 255
@@ -141,8 +149,6 @@ for msg in sys.stdin:
 	byte2 = 0
 
 	inteiros = byteStuffing(inteiros)
-	#print("Inteiros byteStuffing: ", inteiros)
-
 
 	frame = framing(inteiros, ID, FLAG, byte1, byte2)
 	#print("Quadro: ",frame)
@@ -158,9 +164,6 @@ for msg in sys.stdin:
 	frame = encode16(Array_bytes)
 	#print("Quadro (encode): ", frame)
 
-
-	#############
-
 	inteiros = decode16(frame)
 	#print("Quadro (decode): ", inteiros)
 
@@ -171,6 +174,12 @@ for msg in sys.stdin:
 	inteiros = Undo_byteStuffing(inteiros)
 	#print("Inteiros ", inteiros)
 
-	print(saidaDado(inteiros))
+	f_output.write(saidaDado(inteiros))
+
+	a = f_input.read(256)
+	
+
+f_input.close
+f_output.close
 
 
