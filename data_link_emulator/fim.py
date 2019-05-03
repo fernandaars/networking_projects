@@ -5,11 +5,9 @@ def encode16(Array_bytes):
 	for binary in Array_bytes:
 		hexa = hex(int(binary, 2))
 		temp = hexa.lstrip('0x')
-		#print(temp)
 		if len(temp) < 2:
 			zero = "0"
 			temp = zero + temp
-			#print("Precisou completar: ",temp)
 		base16 = base16 + temp
 	return base16
 
@@ -29,7 +27,6 @@ def decode16(string):
 	i = 0
 	while i < size:
 		s = string[i:i+2]
-		#print(s)
 		i = i + 2
 		lista.append(int(s, 16))
 		
@@ -148,34 +145,29 @@ while len(a) > 0:
 	byte1 = 0
 	byte2 = 0
 
+	# Antes da Transmissão
 	inteiros = byteStuffing(inteiros)
-
 	frame = framing(inteiros, ID, FLAG, byte1, byte2)
-	#print("Quadro: ",frame)
-
 	byte1, byte2 = checksum(inteiros)
-
 	frame = setChecksum(frame, byte1, byte2)
-	#print("Quadro (com checksum): ", frame)
-
 	Array_bytes = preEncode(inteiros)
-	#print("Array_bytes", Array_bytes)
-
 	frame = encode16(Array_bytes)
-	#print("Quadro (encode): ", frame)
-
+	
+	#depois de Receber o Quadro
 	inteiros = decode16(frame)
-	#print("Quadro (decode): ", inteiros)
-
+	# se byte1 e byte2 são iguais a 0 então quadro foi recebido corretamente
 	byte1, byte2 = checksum(inteiros)
+	if byte1==0 and byte2==0:
+		inteiros = Undo_byteStuffing(inteiros)
 
-	#print("checksum: ", byte1, byte2)
+		#escreve saida
+		f_output.write(saidaDado(inteiros))
 
-	inteiros = Undo_byteStuffing(inteiros)
-	#print("Inteiros ", inteiros)
+	else:
+		#deu ruim retransmita
+		print(":(")
 
-	f_output.write(saidaDado(inteiros))
-
+	#le mais 256 bytes
 	a = f_input.read(256)
 	
 

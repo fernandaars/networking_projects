@@ -51,6 +51,15 @@ class DataEncoding():
             lista.append(int(s, 16))
         return lista
 
+    def saidaDado(self, lista):
+        size = len(lista)
+        dado = lista[5:size - 1]
+
+        size = len(dado)
+        frase = ""
+        for i in range(0, size):
+            frase = frase + chr(dado[i])
+        return frase
 
 class DataFraming():
     def calculate_checksum(self, frame):
@@ -79,14 +88,10 @@ class DataFraming():
     def convertInt(self, lista):
         size = len(lista)
         inteiros = []
-        # bits = []
         for x in range(0, size):
             num = int(lista[x], 2)
             inteiros.append(num)
-            # num = int(lista[x], 10)
-            # bits.append(num)
-        # print("inteiros: ", inteiros)
-        return inteiros  # bits
+        return inteiros  
 
     def byte_stuffing(self, lista):
         size = len(lista)
@@ -109,16 +114,6 @@ class DataFraming():
                 size = size - 1
             i = i + 1
         return lista
-
-    def saidaDado(self, lista):
-        size = len(lista)
-        dado = lista[5:size - 1]
-
-        size = len(dado)
-        frase = ""
-        for i in range(0, size):
-            frase = frase + chr(dado[i])
-        return frase
 
     def framing(self, lista, ID, FLAG, checksum1, checksum2):
         lista.append(205)
