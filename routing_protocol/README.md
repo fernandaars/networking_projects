@@ -1,5 +1,5 @@
 # Routing Protocol Based on Distance Vector
-An implementation of a virtual topology of routers, where the routers use a routing protocol based on a distance vector.
+An implementation of a virtual topology of routers using a distance vector based routing protocol.
 
 # How to Run
 
@@ -8,9 +8,9 @@ To run this program, you should call it like this:
 ```bash
 $ ./router.py <ADDR> <PERIOD> [STARTUP]
 ```
-**<ADDR>** is the IP address to be binded.
-**<PERIOD>** is the period of time between the update messages.
-**[STARTUP]** is a file with the start configuration of the topology.
+* **<ADDR>** is the IP address to be binded.
+* **<PERIOD>** is the period of time between the update messages.
+* **[STARTUP]** is a file with the start configuration of the topology.
 
 You can also call the Python program directly from the src directory. For that, use this command:
 
@@ -42,3 +42,13 @@ $ trace <ip>
 ```bash
 $ quit
 ```
+
+# Features
+
+* *Weight in the Links*
+* *Load Balancing*
+* *Routes Measurement*
+* *Periodic Updates*
+* *Split Horizon*
+* *Immediate Rerouting*
+* *Removal of Out-Of-Date Routes*
