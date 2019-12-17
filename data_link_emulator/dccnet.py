@@ -167,6 +167,9 @@ class SocketExtended():
 
 
 class Data_Transmission():
+    count_ativo = 0
+    count_passivo = 0
+
     def __init__(self, type, ip, port, input_file, output_file):
         try:
             self.input_pointer = open(input_file, "r")
@@ -177,6 +180,8 @@ class Data_Transmission():
         self.socket_object = SocketExtended(type, ip, port)
 
     def active_transmission(self):
+        print("Active Count: " + str(self.count_ativo))
+        self.count_ativo += 1
         self.socket_object.send_frame(FRAME_EXAMPLE)
         # line = self.input_pointer.readline()
         # while (line):
@@ -187,6 +192,8 @@ class Data_Transmission():
         #     line = self.input_pointer.readline()
 
     def passive_transmission(self):
+        print("Passive Count: " + str(self.count_passivo))
+        self.count_passivo += 1
         self.socket_object.receive_frame()
         # client_socket, client = self.socket_object.accept()
         # while True:
